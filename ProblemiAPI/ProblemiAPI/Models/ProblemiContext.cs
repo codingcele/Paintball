@@ -2,13 +2,13 @@
 
 namespace ProblemiAPI.Models
 {
-    public class ProblemiContext : DbContext
+    public class ProblemsContext : DbContext
     {
-        public ProblemiContext(DbContextOptions<ProblemiContext> options)
+        public ProblemsContext(DbContextOptions<ProblemsContext> options)
             : base(options)
         {
         }
 
-        public DbSet<Problema> Problemi { get; set; } = null!;
+        public DbSet<Problem> Problems { get; set; } = null!;
     }
 }

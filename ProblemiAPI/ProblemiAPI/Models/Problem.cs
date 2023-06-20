@@ -1,6 +1,6 @@
 ﻿namespace ProblemiAPI.Models
 {
-    public class Problema
+    public class Problem
     {
         public long Id { get; set; }
         public string Name { get; set; }
