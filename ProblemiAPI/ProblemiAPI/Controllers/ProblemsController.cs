@@ -9,7 +9,7 @@ using ProblemiAPI.Models;
 
 namespace ProblemiAPI.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/Problems")]
     [ApiController]
     public class ProblemsController : ControllerBase
     {
@@ -22,23 +22,17 @@ namespace ProblemiAPI.Controllers
 
         // GET: api/Problems
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Problem>>> GetProblems()
+        public async Task<ActionResult<IEnumerable<ProblemDTO>>> GetProblems()
         {
-          if (_context.Problems == null)
-          {
-              return NotFound();
-          }
-            return await _context.Problems.ToListAsync();
+            return await _context.Problems
+              .Select(x => ProblemToDTO(x))
+              .ToListAsync();
         }
 
         // GET: api/Problems/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Problem>> GetProblem(long id)
+        public async Task<ActionResult<ProblemDTO>> GetProblem(long id)
         {
-          if (_context.Problems == null)
-          {
-              return NotFound();
-          }
             var problem = await _context.Problems.FindAsync(id);
 
             if (problem == null)
@@ -46,35 +40,37 @@ namespace ProblemiAPI.Controllers
                 return NotFound();
             }
 
-            return problem;
+            return ProblemToDTO(problem);
         }
 
         // PUT: api/Problems/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutProblem(long id, Problem problem)
+        public async Task<IActionResult> PutProblem(long id, ProblemDTO problemDTO)
         {
-            if (id != problem.Id)
+            if (id != problemDTO.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(problem).State = EntityState.Modified;
+            var problem = await _context.Problems.FindAsync(id);
+            if (problem == null)
+            {
+                return NotFound();
+            }
+
+            problem.Name = problemDTO.Name;
+            problem.Description = problemDTO.Description;
+            problem.PossibleSolution = problemDTO.PossibleSolution;
+            problem.IsSolved = problemDTO.IsSolved;
 
             try
             {
                 await _context.SaveChangesAsync();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException) when (!ProblemExists(id))
             {
-                if (!ProblemExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return NotFound();
             }
 
             return NoContent();
@@ -83,27 +79,29 @@ namespace ProblemiAPI.Controllers
         // POST: api/Problems
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Problem>> PostProblem(Problem problem)
+        public async Task<ActionResult<ProblemDTO>> PostProblem(ProblemDTO problemDTO)
         {
-          if (_context.Problems == null)
-          {
-              return Problem("Entity set 'ProblemsContext.Problems'  is null.");
-          }
+            var problem = new Problem
+            {
+                Name = problemDTO.Name,
+                IsSolved = problemDTO.IsSolved,
+                Description = problemDTO.Description,
+                PossibleSolution = problemDTO.PossibleSolution,
+            };
+
             _context.Problems.Add(problem);
             await _context.SaveChangesAsync();
 
-            //return CreatedAtAction("GetProblem", new { id = problem.Id }, problem);
-            return CreatedAtAction(nameof(GetProblem), new { id = problem.Id }, problem);
+            return CreatedAtAction(
+                nameof(GetProblem),
+                new { id = problem.Id },
+                ProblemToDTO(problem));
         }
 
         // DELETE: api/Problems/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProblem(long id)
         {
-            if (_context.Problems == null)
-            {
-                return NotFound();
-            }
             var problem = await _context.Problems.FindAsync(id);
             if (problem == null)
             {
@@ -118,7 +116,17 @@ namespace ProblemiAPI.Controllers
 
         private bool ProblemExists(long id)
         {
-            return (_context.Problems?.Any(e => e.Id == id)).GetValueOrDefault();
+            return _context.Problems.Any(e => e.Id == id);
         }
+
+        private static ProblemDTO ProblemToDTO(Problem problem) =>
+           new ProblemDTO
+           {
+               Id = problem.Id,
+               Name = problem.Name,
+               Description = problem.Description,
+               PossibleSolution = problem.PossibleSolution,
+               IsSolved = problem.IsSolved
+           };
     }
 }
